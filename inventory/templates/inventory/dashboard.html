@@ -1,0 +1,213 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Аналітика колекції{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2>📊 Аналітика колекції</h2>
+</div>
+
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 4px solid #4e73df !important;">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Предметів у базі</div>
+                <div class="h4 mb-0 font-weight-bold">{{ total_items }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 4px solid #e74a3b !important;">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Всього витрачено</div>
+                <div class="h4 mb-0 font-weight-bold">${{ total_investment }}</div>
+                <div class="small mt-1 text-muted">За {{ priced_count }} ігор</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 4px solid #1cc88a !important;">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Ринок (куплені ігри)</div>
+                <div class="h4 mb-0 font-weight-bold">${{ market_val_priced }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 4px solid #f6c23e !important;">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Чистий прибуток (ROI)</div>
+                <div class="h4 mb-0 font-weight-bold {% if profit_total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if profit_total >= 0 %}+{% endif %}${{ profit_total }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 4px solid #36b9cc !important;">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Ринок (ігри без ціни)</div>
+                <div class="h5 mb-0 font-weight-bold">${{ market_val_unpriced }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 4px solid #858796 !important;">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Загальний капітал</div>
+                <div class="h5 mb-0 font-weight-bold text-dark">${{ total_market_value_all }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 4px solid #6f42c1 !important;">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #6f42c1;">Перлина колекції</div>
+                {% if most_expensive %}
+                    <div class="h6 mb-0 font-weight-bold text-truncate">{{ most_expensive.item_name }}</div>
+                    <div class="small fw-bold mt-1 text-muted">${{ most_expensive.purchase_price }}</div>
+                {% else %}
+                    <div class="h6 mb-0 font-weight-bold">Немає даних</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow border-0">
+            <div class="card-header bg-white py-3">
+                <h6 class="m-0 font-weight-bold text-primary">💰 Фінансовий огляд платформ (Витрати vs Ринок)</h6>
+            </div>
+            <div class="card-body">
+                <div style="height: 400px; width: 100%;">
+                    <canvas id="investmentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4 text-center">
+    <div class="col-md-6 mb-2">
+        <button class="btn btn-outline-info w-100 fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#platformCollapse">
+            🎮 Деталі по платформах ⬇️
+        </button>
+    </div>
+    <div class="col-md-6 mb-2">
+        <button class="btn btn-outline-primary w-100 fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#regionCollapse">
+            🌍 Деталі по регіонах ⬇️
+        </button>
+    </div>
+</div>
+
+<div class="collapse mb-4" id="platformCollapse">
+    <div class="card shadow border-0">
+        <div class="card-body">
+            <div class="row">
+                {% for p in platform_fin_list %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card border-0 shadow-sm h-100 bg-light">
+                        <div class="card-body p-3">
+                            <h6 class="fw-bold text-center text-info border-bottom pb-2 mb-2">{{ p.name }}</h6>
+                            <div class="d-flex justify-content-between small mb-1"><span>Витрати:</span><span class="text-danger">${{ p.invested }}</span></div>
+                            <div class="d-flex justify-content-between small mb-1"><span>Ринок (куплені):</span><span class="text-success">${{ p.market_priced }}</span></div>
+                            <div class="d-flex justify-content-between small mb-1"><span>Прибуток:</span><span class="fw-bold {% if p.profit >= 0 %}text-success{% else %}text-danger{% endif %}">${{ p.profit }}</span></div>
+                            <div class="d-flex justify-content-between small mt-2 pt-2 border-top"><span>Весь стек (Ринок):</span><span class="fw-bold text-dark">${{ p.market_total }}</span></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="collapse mb-4" id="regionCollapse">
+    <div class="card shadow border-0">
+        <div class="card-body">
+            <div class="row mb-4">
+                {% for r in region_fin_list %}
+                <div class="col-md-4 mb-3">
+                    <div class="card border-0 shadow-sm h-100 bg-light">
+                        <div class="card-body p-3">
+                            <h6 class="fw-bold text-center text-primary border-bottom pb-2 mb-2">{{ r.name }}</h6>
+                            <div class="d-flex justify-content-between small mb-1"><span>Витрати:</span><span class="text-danger">${{ r.invested }}</span></div>
+                            <div class="d-flex justify-content-between small mb-1"><span>Ринок (куплені):</span><span class="text-success">${{ r.market_priced }}</span></div>
+                            <div class="d-flex justify-content-between small border-top pt-2 mt-2"><span>Усього (Ринок):</span><span class="fw-bold text-dark">${{ r.market_total }}</span></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="height: 300px; width: 100%;"><canvas id="regionChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow border-0 p-3">
+            <h6 class="fw-bold text-center mb-3">Комплектація</h6>
+            <div style="max-width: 300px; margin: 0 auto;">
+                <canvas id="compChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card shadow border-0 p-3">
+            <h6 class="fw-bold text-center mb-3">Регіони (Кількість)</h6>
+            <div style="max-width: 300px; margin: 0 auto;">
+                <canvas id="regCountChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. ГОЛОВНИЙ ГРАФІК ПЛАТФОРМ
+    new Chart(document.getElementById('investmentChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ plat_labels|safe }},
+            datasets: [
+                { label: 'Витрати ($)', data: {{ plat_inv|safe }}, backgroundColor: '#e74a3b', borderRadius: 4 },
+                { label: 'Ринок (куплені) ($)', data: {{ plat_mkt_p|safe }}, backgroundColor: '#1cc88a', borderRadius: 4 },
+                { label: 'Весь стек (Ринок) ($)', data: {{ plat_mkt_t|safe }}, backgroundColor: '#4e73df', borderRadius: 4 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // 2. ГРАФІК РЕГІОНІВ (ФІНАНСИ)
+    new Chart(document.getElementById('regionChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ reg_fin_labels|safe }},
+            datasets: [
+                { label: 'Витрати ($)', data: {{ reg_fin_inv|safe }}, backgroundColor: '#e74a3b', borderRadius: 4 },
+                { label: 'Ринок (куплені) ($)', data: {{ reg_fin_mkt_p|safe }}, backgroundColor: '#1cc88a', borderRadius: 4 },
+                { label: 'Усього (Ринок) ($)', data: {{ reg_fin_mkt_t|safe }}, backgroundColor: '#4e73df', borderRadius: 4 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // 3. КРУГОВІ ГРАФІКИ
+    new Chart(document.getElementById('compChart'), {
+        type: 'doughnut',
+        data: { labels: {{ comp_labels|safe }}, datasets: [{ data: {{ comp_counts|safe }}, backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'] }] }
+    });
+
+    new Chart(document.getElementById('regCountChart'), {
+        type: 'pie',
+        data: { labels: {{ reg_labels|safe }}, datasets: [{ data: {{ reg_counts|safe }}, backgroundColor: ['#e74a3b', '#f6c23e', '#1cc88a', '#4e73df'] }] }
+    });
+});
+</script>
+{% endblock %}

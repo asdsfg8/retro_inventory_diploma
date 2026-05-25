@@ -1,0 +1,25 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Видалення гри{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-5 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="card-title mb-0">Підтвердження видалення</h4>
+            </div>
+            <div class="card-body text-center">
+                <p class="lead">Ви впевнені, що хочете видалити <strong>{{ item.game.title }}</strong> зі своєї колекції?</p>
+                <p class="text-muted small">Цю дію неможливо скасувати.</p>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <a href="{% url 'inventory:collection_list' %}" class="btn btn-secondary me-2">Скасувати</a>
+                    <button type="submit" class="btn btn-danger">Так, видалити</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

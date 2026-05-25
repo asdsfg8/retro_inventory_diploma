@@ -1,0 +1,25 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Вхід{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-5">
+            <div class="card-header bg-dark text-white">
+                <h4 class="card-title mb-0">Вхід у систему</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary w-100">Увійти</button>
+                </form>
+                <div class="mt-3 text-center">
+                    <p>Немає акаунту? <a href="{% url 'inventory:register' %}">Зареєструватися</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

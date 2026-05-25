@@ -1,0 +1,298 @@
+{% extends 'inventory/base.html' %}
+{% block title %}{{ item.item_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">{{ item.item_name }}</h2>
+        <p class="text-muted mb-0">🔗 {{ item.game.title }}</p>
+    </div>
+    <div>
+        <a href="{% url 'inventory:item_update' item.id %}" class="btn btn-outline-primary shadow-sm">Редагувати ✏️</a>
+        <a href="javascript:history.back()" class="btn btn-outline-secondary shadow-sm ms-2">⬅ Назад</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-5 mb-4">
+        <div class="card shadow-sm border-0 p-2 mb-3">
+            {% if item.photo or item.additional_photos.all %}
+                <div class="position-relative bg-light rounded d-flex justify-content-center align-items-center transition-opacity" 
+                     style="height: 400px; cursor: zoom-in;" data-bs-toggle="modal" data-bs-target="#galleryModal" title="Натисніть для повноекранного перегляду">
+                    
+                    {% if item.photo %}
+                        <img src="{{ item.photo.url }}" id="currentMainImage" class="img-fluid rounded" style="max-height: 100%; object-fit: contain;">
+                    {% elif item.additional_photos.all %}
+                        <img src="{{ item.additional_photos.all.0.image.url }}" id="currentMainImage" class="img-fluid rounded" style="max-height: 100%; object-fit: contain;">
+                    {% endif %}
+                    
+                    <div class="position-absolute bottom-0 end-0 p-3" style="opacity: 0.5;">
+                        <span style="font-size: 1.5rem; filter: drop-shadow(0 0 2px white);">🔍</span>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card-body text-center py-5 bg-light text-muted rounded">
+                    <span style="font-size: 3rem;">📸</span>
+                    <p class="mt-2 mb-0">Немає фотографій</p>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if item.photo or item.additional_photos.all %}
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            
+            {% if item.photo %}
+                <img src="{{ item.photo.url }}" class="img-thumbnail gallery-thumb border-primary" 
+                     style="height: 70px; width: 70px; object-fit: cover; cursor: pointer;" 
+                     data-bs-target="#galleryCarousel" data-bs-slide-to="0" onclick="updateMainImage(this)">
+            {% endif %}
+            
+            {% for photo in item.additional_photos.all %}
+                <img src="{{ photo.image.url }}" class="img-thumbnail gallery-thumb" 
+                     style="height: 70px; width: 70px; object-fit: cover; cursor: pointer;" 
+                     data-bs-target="#galleryCarousel" data-bs-slide-to="{% if item.photo %}{{ forloop.counter }}{% else %}{{ forloop.counter0 }}{% endif %}" 
+                     onclick="updateMainImage(this)">
+            {% endfor %}
+
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">ℹ️ Інформація про предмет</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3 border-bottom pb-2">
+                    <div class="col-sm-4 text-muted fw-bold">Видання:</div>
+                    <div class="col-sm-8">{{ item.get_edition_display|default:"Стандартне" }}</div>
+                </div>
+                <div class="row mb-3 border-bottom pb-2">
+                    <div class="col-sm-4 text-muted fw-bold">Комплектація:</div>
+                    <div class="col-sm-8">{{ item.get_completeness_display|default:"Не вказано" }}</div>
+                </div>
+                <div class="row mb-3 border-bottom pb-2">
+                    <div class="col-sm-4 text-muted fw-bold">Регіон:</div>
+                    <div class="col-sm-8">{{ item.get_region_display|default:"Не вказано" }}</div>
+                </div>
+                <div class="row mb-3 border-bottom pb-2">
+                    <div class="col-sm-4 text-muted fw-bold">Стан:</div>
+                    <div class="col-sm-8"><span class="badge bg-info text-dark">{{ item.condition|default:"Не вказано" }}</span></div>
+                </div>
+                <div class="row mb-3 border-bottom pb-2">
+                    <div class="col-sm-4 text-muted fw-bold">Репродукція:</div>
+                    <div class="col-sm-8">{% if item.is_reproduction %}<span class="badge bg-danger">Так (Копія)</span>{% else %}<span class="badge bg-success">Оригінал</span>{% endif %}</div>
+                </div>
+                
+                <h6 class="fw-bold mt-4 text-primary">📦 Зберігання та Фінанси</h6>
+                <div class="row mb-3 border-bottom pb-2 mt-2">
+                    <div class="col-sm-4 text-muted fw-bold">Місцезнаходження:</div>
+                    <div class="col-sm-8">
+                        {% if item.storage %}
+                            <a href="{% url 'inventory:storage_unit_detail' item.storage.id %}" class="text-decoration-none fw-bold text-success">
+                                {{ item.storage.room.location.name }} ➔ {{ item.storage.room.name }} ➔ {{ item.storage.name }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted">Не призначено</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3 border-bottom pb-2">
+                    <div class="col-sm-4 text-muted fw-bold">Дата придбання:</div>
+                    <div class="col-sm-8">{{ item.acquired_date|date:"d.m.Y"|default:"Невідомо" }}</div>
+                </div>
+                
+                <div class="row mb-3 border-bottom pb-2">
+                    <div class="col-sm-4 text-muted fw-bold">Вартість (Купівля):</div>
+                    <div class="col-sm-8 fw-bold">
+                        {% if item.purchase_price and item.purchase_price > 0 %}
+                            <span class="text-success">${{ item.purchase_price }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Відсутня</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="alert mt-4 shadow-sm border" id="pc-block" style="background-color: #f8f9fa; border-color: #dee2e6;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #4e73df;">📈 Ринкова оцінка (PriceCharting)</h6>
+                            <small class="text-muted" id="pc-status">
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                Шукаємо актуальні ціни...
+                            </small>
+                        </div>
+                        <span style="font-size: 2rem;" id="pc-icon">⏳</span>
+                    </div>
+                    
+                    <div id="pc-results" class="mt-3 d-none border-top pt-3">
+                        <div class="row text-center mb-2">
+                            <div class="col-4">
+                                <div class="small text-muted fw-bold mb-1">Loose</div>
+                                <div class="h5 mb-0 fw-bold text-dark" id="pc-loose">--</div>
+                            </div>
+                            <div class="col-4 border-start border-end">
+                                <div class="small text-muted fw-bold mb-1">CIB</div>
+                                <div class="h5 mb-0 fw-bold text-primary" id="pc-cib">--</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="small text-muted fw-bold mb-1">New</div>
+                                <div class="h5 mb-0 fw-bold text-success" id="pc-new">--</div>
+                            </div>
+                        </div>
+                        
+                        <div id="roi-container" class="mt-3 text-center d-none bg-white p-2 rounded border border-light">
+                            <span class="small text-muted fw-bold d-block mb-1">Поточна прибутковість:</span>
+                            <span class="badge rounded-pill px-3 py-2 shadow-sm" id="roi-badge" style="font-size: 0.9rem;">--</span>
+                        </div>
+
+                        <div class="text-end mt-2">
+                            <small class="text-muted" style="font-size: 0.7rem;">Збіг: <span id="pc-console" class="fw-bold"></span></small>
+                            <a href="#" id="pc-link" target="_blank" class="btn btn-sm btn-outline-primary ms-2 py-0" style="font-size: 0.75rem;">Перевірити на сайті ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                {% if item.notes %}
+                <h6 class="fw-bold mt-4 text-secondary">📝 Нотатки:</h6>
+                <p class="bg-light p-3 rounded border">{{ item.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-header border-0 pb-0 justify-content-end">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+            </div>
+            <div class="modal-body text-center pt-0 p-0">
+                
+                <div id="galleryCarousel" class="carousel slide" data-bs-ride="false">
+                    <div class="carousel-inner">
+                        {% if item.photo %}
+                        <div class="carousel-item active">
+                            <img src="{{ item.photo.url }}" class="d-block w-100 rounded shadow-lg" style="max-height: 85vh; object-fit: contain;">
+                        </div>
+                        {% endif %}
+                        
+                        {% for photo in item.additional_photos.all %}
+                        <div class="carousel-item {% if not item.photo and forloop.first %}active{% endif %}">
+                            <img src="{{ photo.image.url }}" class="d-block w-100 rounded shadow-lg" style="max-height: 85vh; object-fit: contain;">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if item.additional_photos.count > 0 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#galleryCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true" style="width: 3rem; height: 3rem; filter: drop-shadow(0px 0px 5px rgba(0,0,0,0.8));"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#galleryCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true" style="width: 3rem; height: 3rem; filter: drop-shadow(0px 0px 5px rgba(0,0,0,0.8));"></span>
+                        </button>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Стилі для інтерактивності мініатюр */
+    .gallery-thumb { transition: all 0.2s ease; border: 2px solid transparent; opacity: 0.6; }
+    .gallery-thumb:hover { opacity: 1 !important; }
+    .gallery-thumb.border-primary { opacity: 1; border-width: 3px !important; }
+    .transition-opacity:hover { opacity: 0.9; transition: opacity 0.2s ease-in-out; }
+</style>
+
+<script>
+    // Функція заміни головного фото при кліку на мініатюру
+    function updateMainImage(thumbElement) {
+        document.getElementById('currentMainImage').src = thumbElement.src;
+        document.querySelectorAll('.gallery-thumb').forEach(el => {
+            el.classList.remove('border-primary');
+            el.style.opacity = '0.6';
+        });
+        thumbElement.classList.add('border-primary');
+        thumbElement.style.opacity = '1';
+    }
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // ОНОВЛЕННЯ: Тепер читаємо ціну просто як USD і не використовуємо exchangeRate
+        const purchasePriceUSD = parseFloat("{{ item.purchase_price|default:'0' }}".replace(',', '.'));
+        const itemCompleteness = "{{ item.get_completeness_display|lower }}";
+
+        fetch("{% url 'inventory:api_market_price' item.id %}")
+            .then(response => response.json())
+            .then(data => {
+                const statusEl = document.getElementById('pc-status');
+                const iconEl = document.getElementById('pc-icon');
+                const blockEl = document.getElementById('pc-block');
+                const resultsEl = document.getElementById('pc-results');
+
+                if (data.success) {
+                    blockEl.style.backgroundColor = '#e8f4f8';
+                    blockEl.style.borderColor = '#4e73df';
+                    
+                    // Виводимо точну назву знайденої гри
+                    const gameTitle = data.prices.title ? data.prices.title : "Дані завантажено";
+                    statusEl.innerHTML = `Знайдено: <strong>${gameTitle}</strong>`;
+                    iconEl.innerText = "💸";
+                    
+                    const formatPrice = (val) => val === "N/A" ? "N/A" : "$" + val;
+                    document.getElementById('pc-loose').innerText = formatPrice(data.prices.loose);
+                    document.getElementById('pc-cib').innerText = formatPrice(data.prices.cib);
+                    document.getElementById('pc-new').innerText = formatPrice(data.prices.new);
+                    
+                    document.getElementById('pc-console').innerText = data.prices.console;
+                    document.getElementById('pc-link').href = data.prices.url;
+                    
+                    // --- ОНОВЛЕНА ЛОГІКА РОЗРАХУНКУ ROI В ДОЛАРАХ ---
+                    if (purchasePriceUSD > 0) {
+                        let marketPrice = 0;
+                        
+                        if (itemCompleteness.includes('loose') || itemCompleteness.includes('картридж') || itemCompleteness.includes('диск')) {
+                            marketPrice = parseFloat(data.prices.loose);
+                        } else if (itemCompleteness.includes('sealed') || itemCompleteness.includes('новий') || itemCompleteness.includes('запакована')) {
+                            marketPrice = parseFloat(data.prices.new);
+                        } else {
+                            marketPrice = parseFloat(data.prices.cib);
+                        }
+                        
+                        if (!isNaN(marketPrice) && marketPrice > 0) {
+                            const diff = marketPrice - purchasePriceUSD;
+                            const perc = (diff / purchasePriceUSD) * 100;
+                            
+                            const roiBadge = document.getElementById('roi-badge');
+                            document.getElementById('roi-container').classList.remove('d-none');
+                            
+                            const sign = diff >= 0 ? '+' : '';
+                            const icon = diff >= 0 ? '📈' : '📉';
+                            
+                            roiBadge.className = diff >= 0 
+                                ? 'badge rounded-pill px-3 py-2 bg-success text-white shadow-sm' 
+                                : 'badge rounded-pill px-3 py-2 bg-danger text-white shadow-sm';
+                                
+                            roiBadge.innerText = `${sign}${diff.toFixed(2)} $ (${sign}${perc.toFixed(1)}%) ${icon}`;
+                        }
+                    }
+                    
+                    resultsEl.classList.remove('d-none');
+                } else {
+                    statusEl.innerHTML = `<span class="text-danger">❌ ${data.error}</span>`;
+                    iconEl.innerText = "🤷‍♂️";
+                }
+            })
+            .catch(error => {
+                document.getElementById('pc-status').innerHTML = '<span class="text-danger">Помилка з\'єднання</span>';
+                document.getElementById('pc-icon').innerText = "⚠️";
+            });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Реєстрація{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-5">
+            <div class="card-header bg-success text-white">
+                <h4 class="card-title mb-0">Створення акаунту</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <!-- Виводимо помилки форми, якщо вони є -->
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            Будь ласка, виправте помилки нижче.
+                        </div>
+                    {% endif %}
+                    
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-success w-100">Зареєструватися</button>
+                </form>
+                <div class="mt-3 text-center">
+                    <p>Вже маєте акаунт? <a href="{% url 'login' %}">Увійти</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

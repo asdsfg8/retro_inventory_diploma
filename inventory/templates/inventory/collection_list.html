@@ -1,0 +1,69 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Моя колекція{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🎮 Моя колекція</h2>
+    <a href="{% url 'inventory:item_create' %}" class="btn btn-primary shadow-sm">+ Додати гру</a>
+</div>
+
+<div class="row">
+    {% for item in items %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border-secondary transition-hover">
+            
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 text-truncate" title="{{ item.item_name }}">{{ item.item_name }}</h5>
+            </div>
+
+            {% if item.photo %}
+                <img src="{{ item.photo.url }}" class="card-img-top" alt="{{ item.item_name }}" style="height: 200px; object-fit: cover;">
+            {% else %}
+                <div class="card-img-top bg-light d-flex justify-content-center align-items-center text-muted border-bottom" style="height: 200px;">
+                    <span>📸 Немає фото</span>
+                </div>
+            {% endif %}
+            
+            <div class="card-body">
+                <p class="text-muted small mb-3 border-bottom pb-1 text-truncate">
+                    <span title="Прив'язка до бази IGDB: {{ item.game.title }}">🔗 {{ item.game.title }}</span>
+                </p>
+                
+                {% if item.edition %}
+                    <div class="mb-3">
+                        <span class="badge bg-warning text-dark border border-warning shadow-sm">⭐ {{ item.edition }}</span>
+                    </div>
+                {% endif %}
+                
+                <p class="card-text mb-1"><strong>Комплектація:</strong> {{ item.get_completeness_display|default:"Не вказано" }}</p>
+                <p class="card-text mb-1"><strong>Регіон:</strong> {{ item.get_region_display|default:"Не вказано" }}</p>
+                <p class="card-text mb-1"><strong>Стан:</strong> <span class="badge bg-info text-dark">{{ item.condition|default:"Не вказано" }}</span></p>
+                
+                {% if item.storage %}
+                <div class="mt-3 p-2 bg-light rounded border border-dashed text-center">
+                    <small class="text-muted">📍 Місцезнаходження:</small><br>
+                    <a href="{% url 'inventory:storage_unit_detail' item.storage.id %}" class="text-decoration-none fw-bold text-success">
+                        {% if item.storage.is_box %}📦{% else %}🗄️{% endif %} {{ item.storage.name }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center pb-3">
+                <a href="{% url 'inventory:item_detail' item.id %}" class="btn btn-primary btn-sm px-3">Деталі 👁️</a>
+                <a href="{% url 'inventory:item_delete' item.pk %}" class="btn btn-danger btn-sm">Видалити</a>
+                <a href="{% url 'inventory:item_update' item.id %}" class="btn btn-outline-secondary btn-sm px-3">Редагувати ✏️</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-light border border-secondary text-center py-5 shadow-sm">
+            <h4>🕳️ Колекція поки що порожня</h4>
+            <p class="text-muted">Час додати першу гру до вашої бази!</p>
+            <a href="{% url 'inventory:item_create' %}" class="btn btn-success mt-3">+ Додати гру</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,315 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm mt-4 mb-5">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                        <div class="mb-4 border-bottom pb-3">
+                            <label class="form-label fw-bold">{{ field.label }}</label>
+                            
+                            {% if field.name == 'photo' %}
+                                <div class="d-flex flex-wrap gap-3 align-items-start mt-2">
+                                    
+                                    {% if form.instance.photo %}
+                                        <div class="position-relative d-inline-block" id="mainPhotoContainer">
+                                            <img src="{{ form.instance.photo.url }}" style="height: 200px; object-fit: cover; cursor: zoom-in;" class="border rounded shadow-sm zoomable-image transition-opacity" title="Натисніть, щоб збільшити">
+                                            <input type="checkbox" name="delete_main_photo" id="deleteMainPhoto" class="d-none">
+                                            <button type="button" class="btn btn-danger rounded-circle shadow position-absolute d-flex align-items-center justify-content-center remove-existing-btn" 
+                                                    style="width: 28px; height: 28px; top: -10px; right: -10px; padding: 0; font-size: 16px; font-weight: bold; border: 2px solid white; z-index: 10;"
+                                                    data-container="mainPhotoContainer" data-checkbox="deleteMainPhoto">
+                                                &times;
+                                            </button>
+                                        </div>
+                                    {% endif %}
+
+                                    <div id="mainPhotoPreview" class="d-inline-block"></div>
+                                    
+                                    <label for="{{ field.id_for_label }}" id="mainPhotoPlus" class="{% if form.instance.photo %}d-none{% else %}d-flex{% endif %} justify-content-center align-items-center bg-light rounded shadow-sm transition-hover m-0" 
+                                           style="width: 150px; height: 200px; cursor: pointer; border: 2px dashed #adb5bd;" 
+                                           title="Обрати головне фото">
+                                        <span style="font-size: 3rem; color: #adb5bd;">+</span>
+                                    </label>
+
+                                    <div class="d-none">
+                                        {{ field }}
+                                    </div>
+                                </div>
+
+                            {% elif field.name == 'additional_photos' %}
+                                <div class="d-flex flex-wrap gap-3 align-items-center mt-2">
+                                    
+                                    {% if form.instance.pk and form.instance.additional_photos.all %}
+                                        {% for img in form.instance.additional_photos.all %}
+                                            <div class="position-relative d-inline-block" id="additionalPhotoContainer_{{ img.id }}">
+                                                <img src="{{ img.image.url }}" style="height: 100px; width: 100px; object-fit: cover; cursor: zoom-in;" class="border rounded shadow-sm zoomable-image transition-opacity" title="Натисніть, щоб збільшити">
+                                                <input type="checkbox" name="delete_additional_photos" value="{{ img.id }}" id="deletePhoto_{{ img.id }}" class="d-none">
+                                                <button type="button" class="btn btn-danger rounded-circle shadow position-absolute d-flex align-items-center justify-content-center remove-existing-btn" 
+                                                        style="width: 24px; height: 24px; top: -8px; right: -8px; padding: 0; font-size: 14px; font-weight: bold; border: 2px solid white; z-index: 10;"
+                                                        data-container="additionalPhotoContainer_{{ img.id }}" data-checkbox="deletePhoto_{{ img.id }}">
+                                                    &times;
+                                                </button>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+
+                                    <div id="additionalPhotosPreview" class="d-flex flex-wrap gap-3 align-items-center"></div>
+                                    
+                                    <label for="{{ field.id_for_label }}" class="d-flex justify-content-center align-items-center bg-light rounded shadow-sm transition-hover m-0" 
+                                           style="width: 100px; height: 100px; cursor: pointer; border: 2px dashed #adb5bd;"
+                                           title="Додати фото">
+                                        <span style="font-size: 2.5rem; color: #adb5bd;">+</span>
+                                    </label>
+
+                                    <div class="d-none">
+                                        {{ field }}
+                                    </div>
+                                </div>
+
+                            {% elif field.name == 'purchase_price' %}
+                                <div class="input-group mt-2">
+                                    <span class="input-group-text fw-bold text-success">$</span>
+                                    {{ field }}
+                                </div>
+                                <div class="form-text mt-1 text-muted">Залиште порожнім або введіть 0, якщо ціна відсутня.</div>
+                            
+                            {% else %}
+                                {{ field }}
+                            {% endif %}
+                            
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'inventory:collection_list' %}" class="btn btn-secondary">Скасувати</a>
+                        <button type="submit" class="btn btn-success px-5">Зберегти зміни</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-header border-0 pb-0 justify-content-end">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+            </div>
+            <div class="modal-body text-center pt-0">
+                <img src="" id="fullSizeImage" class="img-fluid rounded shadow-lg" style="max-height: 85vh;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .transition-hover:hover { background-color: #f8f9fa !important; border-color: #0d6efd !important; }
+    .transition-opacity:hover { opacity: 0.85; transition: opacity 0.2s ease-in-out; }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('zoomable-image')) {
+                const imageSrc = e.target.src;
+                document.getElementById('fullSizeImage').src = imageSrc;
+                const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+                imageModal.show();
+            }
+        });
+
+        function updateMainPlusVisibility() {
+            const plusBtn = document.getElementById('mainPhotoPlus');
+            if (!plusBtn) return;
+            
+            const existingContainer = document.getElementById('mainPhotoContainer');
+            const previewContainer = document.getElementById('mainPhotoPreview');
+
+            const hasExisting = existingContainer && !existingContainer.classList.contains('d-none');
+            const hasNew = previewContainer && previewContainer.children.length > 0;
+
+            if (hasExisting || hasNew) {
+                plusBtn.classList.remove('d-flex');
+                plusBtn.classList.add('d-none');
+            } else {
+                plusBtn.classList.remove('d-none');
+                plusBtn.classList.add('d-flex');
+            }
+        }
+
+        const gameSelect = document.getElementById('id_game_title');
+        if (gameSelect) {
+            new TomSelect(gameSelect, {
+                maxItems: 1, valueField: 'value', labelField: 'text', searchField: 'text',
+                placeholder: "Введіть назву гри...", create: true, 
+                load: function(query, callback) {
+                    if (!query.length) return callback();
+                    fetch(`/api/search-games/?q=${encodeURIComponent(query)}`)
+                        .then(r => r.json()).then(j => callback(j)).catch(() => callback());
+                }
+            });
+        }
+        
+        document.querySelectorAll('.remove-existing-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const containerId = this.getAttribute('data-container');
+                const checkboxId = this.getAttribute('data-checkbox');
+                
+                document.getElementById(checkboxId).checked = true;
+                const container = document.getElementById(containerId);
+                
+                container.classList.remove('d-inline-block');
+                container.classList.add('d-none');
+                
+                if (containerId === 'mainPhotoContainer') {
+                    updateMainPlusVisibility();
+                }
+            });
+        });
+
+        const mainInput = document.getElementById('mainPhotoInput');
+        if (mainInput) {
+            mainInput.addEventListener('change', function() {
+                const container = document.getElementById('mainPhotoPreview');
+                container.innerHTML = '';
+
+                if (this.files && this.files.length > 0) {
+                    const existingMain = document.getElementById('mainPhotoContainer');
+                    if (existingMain) {
+                        existingMain.classList.remove('d-inline-block');
+                        existingMain.classList.add('d-none');
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'position-relative d-inline-block';
+                        wrapper.innerHTML = `
+                            <img src="${e.target.result}" style="height: 200px; object-fit: cover; cursor: zoom-in;" class="border border-2 border-success rounded shadow-sm zoomable-image transition-opacity" title="Натисніть, щоб збільшити">
+                            <button type="button" class="btn btn-danger rounded-circle shadow position-absolute d-flex align-items-center justify-content-center" 
+                                    style="width: 28px; height: 28px; top: -10px; right: -10px; padding: 0; font-size: 16px; font-weight: bold; border: 2px solid white;">&times;</button>
+                        `;
+                        
+                        wrapper.querySelector('button').onclick = function(btnEvent) {
+                            btnEvent.stopPropagation();
+                            wrapper.remove();
+                            mainInput.value = '';
+                            
+                            const deleteCheckbox = document.getElementById('deleteMainPhoto');
+                            if (existingMain && deleteCheckbox && !deleteCheckbox.checked) {
+                                existingMain.classList.remove('d-none');
+                                existingMain.classList.add('d-inline-block');
+                            }
+                            
+                            updateMainPlusVisibility();
+                        };
+                        
+                        container.appendChild(wrapper);
+                        updateMainPlusVisibility();
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    updateMainPlusVisibility();
+                }
+            });
+        }
+
+        const addInput = document.getElementById('id_additional_photos');
+        if (addInput) {
+            addInput.addEventListener('change', function() {
+                const container = document.getElementById('additionalPhotosPreview');
+                container.innerHTML = ''; 
+                Array.from(this.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'position-relative d-inline-block';
+                        wrapper.innerHTML = `
+                            <img src="${e.target.result}" style="height: 100px; width: 100px; object-fit: cover; cursor: zoom-in;" class="border border-2 border-success rounded shadow-sm zoomable-image transition-opacity" title="Натисніть, щоб збільшити">
+                            <button type="button" class="btn btn-danger rounded-circle shadow position-absolute d-flex align-items-center justify-content-center" 
+                                    style="width: 24px; height: 24px; top: -8px; right: -8px; padding: 0; font-size: 14px; font-weight: bold; border: 2px solid white;">&times;</button>
+                        `;
+                        wrapper.querySelector('button').onclick = function(btnEvent) {
+                            btnEvent.stopPropagation();
+                            wrapper.remove();
+                            const dt = new DataTransfer();
+                            Array.from(addInput.files).forEach(f => {
+                                if (f.name !== file.name || f.size !== file.size) dt.items.add(f);
+                            });
+                            addInput.files = dt.files;
+                        };
+                        container.appendChild(wrapper);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+        }
+
+        updateMainPlusVisibility();
+
+        // Динамічне підвантаження кімнат та сховищ (AJAX)
+        const locationSelect = document.getElementById('id_location');
+        const roomSelect = document.getElementById('id_room');
+        const storageSelect = document.getElementById('id_storage');
+
+        if (locationSelect) {
+            locationSelect.addEventListener('change', function() {
+                const locationId = this.value;
+                
+                roomSelect.innerHTML = '<option value="">Виберіть кімнату...</option>';
+                if (storageSelect) {
+                    storageSelect.innerHTML = '<option value="">Спочатку виберіть кімнату</option>';
+                }
+
+                if (locationId) {
+                    fetch(`/ajax/load-rooms/?location=${locationId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            data.forEach(room => {
+                                const option = new Option(room.name, room.id);
+                                roomSelect.add(option);
+                            });
+                        })
+                        .catch(error => console.error('Помилка завантаження кімнат:', error));
+                }
+            });
+        }
+
+        if (roomSelect && storageSelect) {
+            roomSelect.addEventListener('change', function() {
+                const roomId = this.value;
+                
+                storageSelect.innerHTML = '<option value="">Виберіть місце зберігання...</option>';
+
+                if (roomId) {
+                    fetch(`/ajax/load-storage-units/?room=${roomId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            data.forEach(unit => {
+                                const unitName = unit.is_box ? `📦 ${unit.name}` : unit.name;
+                                const option = new Option(unitName, unit.id);
+                                storageSelect.add(option);
+                            });
+                        })
+                        .catch(error => console.error('Помилка завантаження сховищ:', error));
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
